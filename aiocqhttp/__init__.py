@@ -1,18 +1,17 @@
 import asyncio
-import hmac
 import logging
 import re
-from typing import (Dict, Any, Optional, AnyStr, Callable, Union, List,
-                    Awaitable, Coroutine)
+from typing import (Dict, Any, Optional, Callable, Union, List, Awaitable,
+                    Coroutine)
 
 try:
     import ujson as json
 except ImportError:
     import json
 
-from quart import Quart, request, abort, jsonify, websocket, Response
+from quart import Quart, abort, websocket
 
-from .api_impl import (AsyncApi, SyncApi, WebSocketReverseApi, ResultStore)
+from .api_impl import AsyncApi, SyncApi, WebSocketReverseApi, ResultStore
 from .bus import EventBus
 from .exceptions import Error, TimingError
 from .event import Event
@@ -56,44 +55,24 @@ class CQHttp(AsyncApi):
     def __init__(self,
                  import_name: str = '',
                  *,
-                 api_root: Optional[str] = None,
                  access_token: Optional[str] = None,
-                 secret: Optional[AnyStr] = None,
                  message_class: Optional[type] = Message,
-                 api_timeout_sec: Optional[float] = None,
                  server_app_kwargs: Optional[dict] = None,
                  **kwargs):
-        self._api = None
+        self._wsr_api_clients = {}  # connected wsr api clients
+        self._api = WebSocketReverseApi(self._wsr_api_clients, 60)
         self._sync_api = None
 
+        self._access_token = access_token
+        self._message_class = message_class
         self._bus = EventBus()
         self._loop = None
 
         self._server_app = Quart(import_name, **(server_app_kwargs or {}))
         self._server_app.before_serving(self._before_serving)
-        self._server_app.add_url_rule('/',
-                                      methods=['POST'],
-                                      view_func=self._handle_http_event)
-        for p in ('/ws', '/ws/event', '/ws/api'):
-            self._server_app.add_websocket(p,
-                                           strict_slashes=False,
-                                           view_func=self._handle_wsr)
-
-        self._configure(api_root, access_token, secret, message_class,
-                        api_timeout_sec)
-
-    def _configure(self,
-                   api_root: Optional[str] = None,
-                   access_token: Optional[str] = None,
-                   secret: Optional[AnyStr] = None,
-                   message_class: Optional[type] = Message,
-                   api_timeout_sec: Optional[float] = None):
-        self._message_class = message_class
-        api_timeout_sec = api_timeout_sec or 60  # wait for 60 secs by default
-        self._access_token = access_token
-        self._secret = secret
-        self._wsr_api_clients = {}  # connected wsr api clients
-        self._api = WebSocketReverseApi(self._wsr_api_clients, api_timeout_sec)
+        self._server_app.add_websocket('/ws',
+                                       strict_slashes=False,
+                                       view_func=self._handle_wsr)
 
     async def _before_serving(self):
         self._loop = asyncio.get_running_loop()
@@ -147,22 +126,15 @@ class CQHttp(AsyncApi):
     async def send(self, event: Event, message: Union[str, Dict[str, Any],
                                                       List[Dict[str, Any]]],
                    **kwargs) -> Optional[Dict[str, Any]]:
-        keys = {
-            'message_type', 'user_id', 'group_id', 'discuss_id', 'auto_escape'
-        }
+        keys = {'type', 'detail_type', 'self_id'}
         params = {k: v for k, v in event.items() if k in keys}
         params['message'] = message
         params.update(kwargs)
 
-        if 'message_type' not in params:
-            if 'group_id' in params:
-                params['message_type'] = 'group'
-            elif 'discuss_id' in params:
-                params['message_type'] = 'discuss'
-            elif 'user_id' in params:
-                params['message_type'] = 'private'
+        if 'detail_type' not in params:
+            params['detail_type'] = 'private'
 
-        return await self.send_msg(**params)
+        return await self._api.call_action('send', **params)
 
     def subscribe(self, event_name: str, func: Callable) -> None:
         self._bus.subscribe(event_name, ensure_async(func))
@@ -183,39 +155,12 @@ class CQHttp(AsyncApi):
     on_request = _deco_maker('request')
     on_meta_event = _deco_maker('meta_event')
 
-    async def _handle_http_event(self) -> Response:
-        if self._secret:
-            if 'X-Signature' not in request.headers:
-                self.logger.warning('signature header is missed')
-                abort(401)
-
-            sec = self._secret
-            sec = sec.encode('utf-8') if isinstance(sec, str) else sec
-            sig = hmac.new(sec, await request.get_data(), 'sha1').hexdigest()
-            if request.headers['X-Signature'] != 'sha1=' + sig:
-                self.logger.warning('signature header is invalid')
-                abort(403)
-
-        payload = await request.json
-        if not isinstance(payload, dict):
-            abort(400)
-
-        if request.headers['X-Self-ID'] in self._wsr_api_clients:
-            self.logger.warning(
-                'there is already a reverse websocket api connection, '
-                'so the event may be handled twice.')
-
-        response = await self._handle_event(payload)
-        if isinstance(response, dict):
-            return jsonify(response)
-        return Response('', 204)
-
     async def _handle_wsr(self) -> None:
         if self._access_token:
             auth = websocket.headers.get('Authorization', '')
-            m = re.fullmatch(r'(?:[Tt]oken|[Bb]earer) (?P<token>\S+)', auth)
+            m = re.fullmatch(r'(?:[Bb]earer) (?P<token>\S+)', auth)
             if not m:
-                self.logger.warning('authorization header is missed')
+                self.logger.warning('authorization header is missing')
                 abort(401)
 
             token_given = m.group('token').strip()
@@ -223,9 +168,6 @@ class CQHttp(AsyncApi):
                 self.logger.warning('authorization header is invalid')
                 abort(403)
 
-        await self._handle_wsr_universal()
-
-    async def _handle_wsr_universal(self) -> None:
         self._add_wsr_api_client()
         try:
             while True:
@@ -240,8 +182,7 @@ class CQHttp(AsyncApi):
 
                 if 'type' in payload:
                     # is a event
-                    asyncio.create_task(
-                        self._handle_event_with_response(payload))
+                    asyncio.create_task(self._handle_event(payload))
                 elif payload:
                     # is a api result
                     ResultStore.add(payload)
@@ -276,20 +217,3 @@ class CQHttp(AsyncApi):
             self._bus.emit(event_name, ev)))
         # return the first non-none result
         return results[0] if results else None
-
-    async def _handle_event_with_response(self, payload: Dict[str,
-                                                              Any]) -> None:
-        response = await self._handle_event(payload)
-        if isinstance(response, dict):
-            payload.pop('message', None)  # avoid wasting bandwidth
-            payload.pop('raw_message', None)
-            payload.pop('comment', None)
-            payload.pop('sender', None)
-            try:
-                await self._api.call_action(
-                    self_id=payload['self_id'],
-                    action='.handle_quick_operation_async',
-                    context=payload,
-                    operation=response)
-            except Error:
-                pass

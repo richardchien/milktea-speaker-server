@@ -23,20 +23,6 @@ class AsyncApi(Api):
         pass
 
 
-def _handle_api_result(result: Optional[Dict[str, Any]]) -> Any:
-    """
-    Retrieve 'data' field from the API result object.
-
-    :param result: API result that received from CQHTTP
-    :return: the 'data' field in result object
-    :raise ActionFailed: the 'status' field is 'failed'
-    """
-    if isinstance(result, dict):
-        if result.get('status') == 'failed':
-            raise ActionFailed(retcode=result.get('retcode'))
-        return result.get('data')
-
-
 class _SequenceGenerator:
     _seq = 1
 
@@ -104,8 +90,12 @@ class WebSocketReverseApi(AsyncApi):
                     'seq': seq
                 }
             }))
-        return _handle_api_result(await
-                                  ResultStore.fetch(seq, self._timeout_sec))
+
+        result = await ResultStore.fetch(seq, self._timeout_sec)
+        if isinstance(result, dict):
+            if result.get('status') == 'failed':
+                raise ActionFailed(retcode=result.get('retcode'))
+        return result.get('data')
 
 
 class SyncApi(Api):
