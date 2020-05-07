@@ -1,5 +1,5 @@
 import asyncio
-from typing import (Any, Callable, Awaitable)
+from typing import Any, Callable, Awaitable, Iterable, List
 
 from quart.utils import run_sync
 
@@ -21,3 +21,14 @@ def sync_wait(coro: Awaitable[Any], loop: asyncio.AbstractEventLoop) -> Any:
     """
     fut = asyncio.run_coroutine_threadsafe(coro, loop)
     return fut.result()
+
+
+async def run_async_funcs(funcs: Iterable[Callable[..., Awaitable[Any]]],
+                          *args, **kwargs) -> List[Any]:
+    results = []
+    coros = []
+    for f in funcs:
+        coros.append(f(*args, **kwargs))
+    if coros:
+        results += await asyncio.gather(*coros)
+    return results

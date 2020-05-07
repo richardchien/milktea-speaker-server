@@ -1,7 +1,5 @@
 from typing import Dict, Any, Optional
 
-from .typing import Message_T
-
 
 class Event(dict):
     @staticmethod

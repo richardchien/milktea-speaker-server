@@ -1,6 +1,7 @@
-import asyncio
 from collections import defaultdict
 from typing import Callable, List, Any
+
+from .utils import run_async_funcs
 
 
 class EventBus:
@@ -24,11 +25,8 @@ class EventBus:
     async def emit(self, event: str, *args, **kwargs) -> List[Any]:
         results = []
         while True:
-            coros = []
-            for f in self._subscribers[event]:
-                coros.append(f(*args, **kwargs))
-            if coros:
-                results += await asyncio.gather(*coros)
+            results += await run_async_funcs(self._subscribers[event],
+                                             *args, **kwargs)
             event, *sub_event = event.rsplit('.', maxsplit=1)
             if not sub_event:
                 # the current event is the root event
