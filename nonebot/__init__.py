@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import Any, Optional, Callable, Awaitable
 
-import anybot
+from anybot import AnyBot, Event, Message, Error
 
 from .log import logger
 from .sched import Scheduler
@@ -13,7 +13,7 @@ else:
     scheduler = None
 
 
-class NoneBot(anybot.AnyBot):
+class NoneBot(AnyBot):
     def __init__(self, config_object: Optional[Any] = None):
         if config_object is None:
             from . import default_config as config_object
@@ -24,7 +24,7 @@ class NoneBot(anybot.AnyBot):
             if k.isupper() and not k.startswith('_')
         }
         logger.debug(f'Loaded configurations: {config_dict}')
-        super().__init__(message_class=anybot.message.Message,
+        super().__init__(message_class=Message,
                          **{k.lower(): v
                             for k, v in config_dict.items()})
 
@@ -34,7 +34,7 @@ class NoneBot(anybot.AnyBot):
         from .message import handle_message
 
         @self.on_message
-        async def _(event: anybot.Event):
+        async def _(event: Event):
             asyncio.create_task(handle_message(self, event))
 
     def run(self,
@@ -112,28 +112,31 @@ def on_startup(func: Callable[[], Awaitable[None]]) \
     return get_bot().server_app.before_serving(func)
 
 
-from .exceptions import *
 from .plugin import (load_plugin, load_plugins, load_builtin_plugins,
                      get_loaded_plugins)
-from .message import message_preprocessor, Message, MessageSegment
+from .message import (before_handle_message, before_send_message, Message,
+                      MessageSegment)
 from .command import on_command, CommandSession, CommandGroup
 from .natural_language import (on_natural_language, NLPSession, NLPResult,
                                IntentCommand)
 from .helpers import context_id
 
 __all__ = [
+    'AnyBot',
+    'Event',
+    'Error',
     'NoneBot',
     'scheduler',
     'init',
     'get_bot',
     'run',
     'on_startup',
-    'Error',
     'load_plugin',
     'load_plugins',
     'load_builtin_plugins',
     'get_loaded_plugins',
-    'message_preprocessor',
+    'before_handle_message',
+    'before_send_message',
     'Message',
     'MessageSegment',
     'on_command',

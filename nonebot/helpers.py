@@ -1,13 +1,11 @@
 import hashlib
 import random
-from typing import Sequence, Callable, Any
+from typing import Sequence, Callable
 
 from anybot import Event
 
-from . import NoneBot
-from .exceptions import Error
 from .message import escape
-from .typing import Message_T, Expression_T
+from .typing import Expression_T
 
 
 def context_id(event: Event, *, use_hash: bool = False) -> str:
@@ -21,21 +19,6 @@ def context_id(event: Event, *, use_hash: bool = False) -> str:
     if ctx_id and use_hash:
         ctx_id = hashlib.md5(ctx_id.encode('ascii')).hexdigest()
     return ctx_id
-
-
-async def send(bot: NoneBot,
-               event: Event,
-               message: Message_T,
-               *,
-               ignore_failure: bool = True,
-               **kwargs) -> Any:
-    """Send a message ignoring failure by default."""
-    try:
-        return await bot.send(event, message, **kwargs)
-    except Error:
-        if not ignore_failure:
-            raise
-        return None
 
 
 def render_expression(expr: Expression_T,

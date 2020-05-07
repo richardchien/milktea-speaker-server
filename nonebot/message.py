@@ -1,19 +1,28 @@
-import asyncio
-from typing import Callable
+from typing import Callable, Awaitable
 
-from anybot import Event
 from anybot.message import *
+from anybot.utils import run_async_funcs
 
-from . import NoneBot
+from . import NoneBot, Event, Error
 from .command import handle_command, SwitchException
 from .log import logger
 from .natural_language import handle_natural_language
+from .typing import Message_T
 
-_message_preprocessors = set()
+_before_handle_message_funcs = set()
+_before_send_message_funcs = set()
 
 
-def message_preprocessor(func: Callable) -> Callable:
-    _message_preprocessors.add(func)
+def before_handle_message(
+        func: Callable[[NoneBot, Event], Awaitable[None]]) -> Callable:
+    _before_handle_message_funcs.add(func)
+    return func
+
+
+def before_send_message(
+        func: Callable[[NoneBot, Event, Message],
+                       Awaitable[None]]) -> Callable:
+    _before_send_message_funcs.add(func)
     return func
 
 
@@ -23,12 +32,7 @@ async def handle_message(bot: NoneBot, event: Event) -> None:
     assert isinstance(event.message, Message)
     if not event.message:
         event.message.append(MessageSegment.text(''))
-
-    coros = []
-    for preprocessor in _message_preprocessors:
-        coros.append(preprocessor(bot, event))
-    if coros:
-        await asyncio.wait(coros)
+    await run_async_funcs(_before_handle_message_funcs, bot, event)
 
     raw_to_me = event.get('to_me', False)
     _check_at_me(bot, event)
@@ -89,3 +93,22 @@ def _check_calling_me_nickname(bot: NoneBot, event: Event) -> None:
 def _log_message(event: Event) -> None:
     logger.info(f'Self: {event.self_id}, message {event.message_id}: '
                 f'{repr(str(event.message))}')
+
+
+async def send(bot: NoneBot,
+               event: Event,
+               message: Message_T,
+               *,
+               ignore_failure: bool = True,
+               **kwargs) -> Any:
+    """Send a message ignoring failure by default."""
+    message = Message(message)
+    assert isinstance(message, Message)
+    await run_async_funcs(_before_send_message_funcs, bot, event, message)
+
+    try:
+        return await bot.send(event, message, **kwargs)
+    except Error:
+        if not ignore_failure:
+            raise
+        return None

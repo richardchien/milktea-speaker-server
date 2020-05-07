@@ -1,1 +1,0 @@
-from anybot import Error

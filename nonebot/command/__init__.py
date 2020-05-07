@@ -11,7 +11,7 @@ from anybot import Event
 
 from nonebot import NoneBot
 from nonebot.command.argfilter import ValidateError
-from nonebot.helpers import context_id, send, render_expression
+from nonebot.helpers import context_id, render_expression
 from nonebot.log import logger
 from nonebot.message import Message
 from nonebot.session import BaseSession
@@ -533,6 +533,7 @@ async def handle_command(bot: NoneBot, event: Event) -> bool:
         if session.running:
             logger.warning(f'There is a session of command '
                            f'{session.cmd.name} running, notify the user')
+            from nonebot.message import send
             asyncio.ensure_future(
                 send(bot, event,
                      render_expression(bot.config.SESSION_RUNNING_EXPRESSION)))

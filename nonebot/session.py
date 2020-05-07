@@ -1,7 +1,6 @@
 from anybot import Event
 
 from . import NoneBot
-from .helpers import send
 from .typing import Message_T
 
 
@@ -32,6 +31,7 @@ class BaseSession:
         :param ignore_failure: if any Error raised, ignore it
         :return: the result returned by client
         """
+        from .message import send
         return await send(self.bot,
                           self.event,
                           message,
