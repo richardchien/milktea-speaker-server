@@ -1,7 +1,7 @@
 import asyncio
 from typing import Iterable, Optional, Callable, Union, NamedTuple
 
-from aiocqhttp import Event as CQEvent
+from anybot import Event
 
 from . import NoneBot
 from .command import call_command
@@ -62,7 +62,7 @@ def on_natural_language(keywords: Union[Optional[Iterable], str,
 class NLPSession(BaseSession):
     __slots__ = ('msg', 'msg_text', 'msg_images')
 
-    def __init__(self, bot: NoneBot, event: CQEvent, msg: str):
+    def __init__(self, bot: NoneBot, event: Event, msg: str):
         super().__init__(bot, event)
         self.msg = msg
         tmp_msg = Message(msg)
@@ -98,7 +98,7 @@ class IntentCommand(NamedTuple):
     current_arg: str = ''
 
 
-async def handle_natural_language(bot: NoneBot, event: CQEvent) -> bool:
+async def handle_natural_language(bot: NoneBot, event: Event) -> bool:
     """
     Handle a message as natural language.
 
@@ -110,7 +110,7 @@ async def handle_natural_language(bot: NoneBot, event: CQEvent) -> bool:
     """
     session = NLPSession(bot, event, str(event.message))
 
-    # use msg_text here because CQ code "share" may be very long,
+    # use msg_text here because MT code may be very long,
     # at the same time some plugins may want to handle it
     msg_text_length = len(session.msg_text)
 

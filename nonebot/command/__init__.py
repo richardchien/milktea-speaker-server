@@ -7,7 +7,7 @@ from functools import partial
 from typing import (Tuple, Union, Callable, Iterable, Any, Optional, List,
                     Dict, Awaitable)
 
-from aiocqhttp import Event as CQEvent
+from anybot import Event
 
 from nonebot import NoneBot
 from nonebot.command.argfilter import ValidateError
@@ -244,7 +244,7 @@ class CommandSession(BaseSession):
 
     def __init__(self,
                  bot: NoneBot,
-                 event: CQEvent,
+                 event: Event,
                  cmd: Command,
                  *,
                  current_arg: str = '',
@@ -261,7 +261,7 @@ class CommandSession(BaseSession):
         self._current_send_kwargs: Dict[str, Any] = {}
 
         # initialize current argument
-        self.current_arg: str = ''  # with potential CQ codes
+        self.current_arg: str = ''  # with potential MT codes
         self._current_arg_text = None
         self._current_arg_images = None
         self.refresh(event, current_arg=current_arg)  # fill the above
@@ -319,7 +319,7 @@ class CommandSession(BaseSession):
     @property
     def current_arg_text(self) -> str:
         """
-        Plain text part in the current argument, without any CQ codes.
+        Plain text part in the current argument, without any MT codes.
         """
         if self._current_arg_text is None:
             self._current_arg_text = Message(
@@ -346,7 +346,7 @@ class CommandSession(BaseSession):
         """
         return self.state.get('argv', [])
 
-    def refresh(self, event: CQEvent, *, current_arg: str = '') -> None:
+    def refresh(self, event: Event, *, current_arg: str = '') -> None:
         """
         Refill the session with a new message event.
 
@@ -499,7 +499,7 @@ def parse_command(bot: NoneBot,
     return cmd, ''.join(cmd_remained)
 
 
-async def handle_command(bot: NoneBot, event: CQEvent) -> bool:
+async def handle_command(bot: NoneBot, event: Event) -> bool:
     """
     Handle a message as a command.
 
@@ -568,7 +568,7 @@ async def handle_command(bot: NoneBot, event: CQEvent) -> bool:
 
 
 async def call_command(bot: NoneBot,
-                       event: CQEvent,
+                       event: Event,
                        name: Union[str, CommandName_T],
                        *,
                        current_arg: str = '',
@@ -666,7 +666,7 @@ async def _real_run_command(session: CommandSession,
             raise e  # this is intended to be propagated to handle_message()
 
 
-def kill_current_session(event: CQEvent) -> None:
+def kill_current_session(event: Event) -> None:
     """
     Force kill current session of the given event context,
     despite whether it is running or not.

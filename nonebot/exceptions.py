@@ -1,1 +1,1 @@
-from aiocqhttp import Error as CQHttpError
+from anybot import Error

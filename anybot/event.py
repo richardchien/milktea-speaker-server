@@ -39,7 +39,7 @@ class Event(dict):
         return self.get('message_id')
 
     @property
-    def message(self) -> Optional[Message_T]:
+    def message(self) -> Any:
         """消息。"""
         return self.get('message')
 

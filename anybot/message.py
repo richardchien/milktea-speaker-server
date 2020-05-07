@@ -142,7 +142,7 @@ class Message(list):
         def iter_function_name_and_extra() -> Iterable[Tuple[str, str]]:
             text_begin = 0
             for cqcode in re.finditer(
-                    r'\[CQ:(?P<type>[a-zA-Z0-9-_.]+)'
+                    r'\[MT:(?P<type>[a-zA-Z0-9-_.]+)'
                     r'(?P<params>'
                     r'(?:,[a-zA-Z0-9-_.]+=?[^,\]]*)*'
                     r'),?\]', msg_str):

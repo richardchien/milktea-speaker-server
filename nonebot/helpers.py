@@ -2,22 +2,17 @@ import hashlib
 import random
 from typing import Sequence, Callable, Any
 
-from aiocqhttp import Event as CQEvent
+from anybot import Event
 
 from . import NoneBot
-from .exceptions import CQHttpError
+from .exceptions import Error
 from .message import escape
 from .typing import Message_T, Expression_T
 
 
-def context_id(event: CQEvent, *, use_hash: bool = False) -> str:
+def context_id(event: Event, *, use_hash: bool = False) -> str:
     """
     Calculate a unique id representing the context of the given event.
-
-    mode:
-      default: one id for one context
-      group: one id for one group or discuss
-      user: one id for one user
 
     :param event: the event object
     :param use_hash: use md5 to hash the id or not
@@ -29,19 +24,15 @@ def context_id(event: CQEvent, *, use_hash: bool = False) -> str:
 
 
 async def send(bot: NoneBot,
-               event: CQEvent,
+               event: Event,
                message: Message_T,
                *,
-               ensure_private: bool = False,
                ignore_failure: bool = True,
                **kwargs) -> Any:
     """Send a message ignoring failure by default."""
     try:
-        if ensure_private:
-            event = event.copy()
-            event['message_type'] = 'private'
         return await bot.send(event, message, **kwargs)
-    except CQHttpError:
+    except Error:
         if not ignore_failure:
             raise
         return None

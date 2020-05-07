@@ -1,8 +1,8 @@
 import asyncio
 from typing import Callable
 
-from aiocqhttp import Event as CQEvent
-from aiocqhttp.message import *
+from anybot import Event
+from anybot.message import *
 
 from . import NoneBot
 from .command import handle_command, SwitchException
@@ -17,7 +17,7 @@ def message_preprocessor(func: Callable) -> Callable:
     return func
 
 
-async def handle_message(bot: NoneBot, event: CQEvent) -> None:
+async def handle_message(bot: NoneBot, event: Event) -> None:
     _log_message(event)
 
     assert isinstance(event.message, Message)
@@ -54,7 +54,7 @@ async def handle_message(bot: NoneBot, event: CQEvent) -> None:
         return
 
 
-def _check_at_me(bot: NoneBot, event: CQEvent) -> None:
+def _check_at_me(bot: NoneBot, event: Event) -> None:
     if event.detail_type == 'private':
         event['to_me'] = True
     else:
@@ -62,7 +62,7 @@ def _check_at_me(bot: NoneBot, event: CQEvent) -> None:
         event['to_me'] = False
 
 
-def _check_calling_me_nickname(bot: NoneBot, event: CQEvent) -> None:
+def _check_calling_me_nickname(bot: NoneBot, event: Event) -> None:
     first_msg_seg = event.message[0]
     if first_msg_seg.type != 'text':
         return
@@ -86,6 +86,6 @@ def _check_calling_me_nickname(bot: NoneBot, event: CQEvent) -> None:
             first_msg_seg.data['text'] = first_text[m.end():]
 
 
-def _log_message(event: CQEvent) -> None:
+def _log_message(event: Event) -> None:
     logger.info(f'Self: {event.self_id}, message {event.message_id}: '
                 f'{repr(str(event.message))}')

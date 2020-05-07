@@ -22,7 +22,7 @@ from . import exceptions
 from .exceptions import *  # noqa: F401, F403
 
 __all__ = [
-    'CQHttp',
+    'AnyBot',
     'Event',
     'Message',
     'MessageSegment',
@@ -51,12 +51,12 @@ def _deco_maker(type_: str) -> Callable:
     return deco_deco
 
 
-class CQHttp(AsyncApi):
+class AnyBot(AsyncApi):
     def __init__(self,
                  import_name: str = '',
                  *,
                  access_token: Optional[str] = None,
-                 message_class: Optional[type] = Message,
+                 message_class: Optional[type] = None,
                  server_app_kwargs: Optional[dict] = None,
                  **kwargs):
         self._wsr_api_clients = {}  # connected wsr api clients

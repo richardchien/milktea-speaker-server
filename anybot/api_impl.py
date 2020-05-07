@@ -1,9 +1,7 @@
 import abc
 import asyncio
 import sys
-from typing import Dict, Any, Optional
-
-from .api import Api
+from typing import Dict, Any
 
 try:
     import ujson as json
@@ -13,6 +11,7 @@ except ImportError:
 from quart import websocket as event_ws
 from quart.wrappers.request import Websocket
 
+from .api import Api
 from .exceptions import ActionFailed, ApiNotAvailable, NetworkError
 from .utils import sync_wait
 

@@ -2,8 +2,7 @@ import asyncio
 import logging
 from typing import Any, Optional, Callable, Awaitable
 
-import aiocqhttp
-from aiocqhttp import CQHttp
+import anybot
 
 from .log import logger
 from .sched import Scheduler
@@ -14,7 +13,7 @@ else:
     scheduler = None
 
 
-class NoneBot(CQHttp):
+class NoneBot(anybot.AnyBot):
     def __init__(self, config_object: Optional[Any] = None):
         if config_object is None:
             from . import default_config as config_object
@@ -25,7 +24,7 @@ class NoneBot(CQHttp):
             if k.isupper() and not k.startswith('_')
         }
         logger.debug(f'Loaded configurations: {config_dict}')
-        super().__init__(message_class=aiocqhttp.message.Message,
+        super().__init__(message_class=anybot.message.Message,
                          **{k.lower(): v
                             for k, v in config_dict.items()})
 
@@ -35,7 +34,7 @@ class NoneBot(CQHttp):
         from .message import handle_message
 
         @self.on_message
-        async def _(event: aiocqhttp.Event):
+        async def _(event: anybot.Event):
             asyncio.create_task(handle_message(self, event))
 
     def run(self,
@@ -129,7 +128,7 @@ __all__ = [
     'get_bot',
     'run',
     'on_startup',
-    'CQHttpError',
+    'Error',
     'load_plugin',
     'load_plugins',
     'load_builtin_plugins',

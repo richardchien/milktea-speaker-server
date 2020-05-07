@@ -1,7 +1,3 @@
-"""
-此模块提供了工具函数。
-"""
-
 import asyncio
 from typing import (Any, Callable, Awaitable)
 
