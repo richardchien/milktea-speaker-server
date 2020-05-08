@@ -48,6 +48,7 @@ class MessageSegment(dict):
     msg: Message = at_seg + MessageSegment.face(14)
     ```
     """
+
     def __init__(self,
                  d: Optional[Dict[str, Any]] = None,
                  *,
@@ -126,6 +127,7 @@ class Message(list):
     """
     消息，即消息段列表。
     """
+
     def __init__(self, msg: Any = None, *args, **kwargs):
         """``msg`` 参数为要转换为 `Message` 对象的字符串、列表或字典。"""
         super().__init__(*args, **kwargs)
@@ -141,15 +143,17 @@ class Message(list):
     def _split_iter(msg_str: str) -> Iterable[MessageSegment]:
         def iter_function_name_and_extra() -> Iterable[Tuple[str, str]]:
             text_begin = 0
-            for cqcode in re.finditer(
+            for code in re.finditer(
                     r'\[MT:(?P<type>[a-zA-Z0-9-_.]+)'
                     r'(?P<params>'
                     r'(?:,[a-zA-Z0-9-_.]+=?[^,\]]*)*'
                     r'),?\]', msg_str):
-                yield 'text', unescape(msg_str[text_begin:cqcode.pos +
-                                               cqcode.start()])
-                text_begin = cqcode.pos + cqcode.end()
-                yield cqcode.group('type'), cqcode.group('params').lstrip(',')
+                yield (
+                    'text',
+                    unescape(msg_str[text_begin:code.pos + code.start()])
+                )
+                text_begin = code.pos + code.end()
+                yield code.group('type'), code.group('params').lstrip(',')
             yield 'text', unescape(msg_str[text_begin:])
 
         for function_name, extra in iter_function_name_and_extra():
