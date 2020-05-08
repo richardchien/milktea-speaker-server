@@ -109,6 +109,6 @@ venv.bak/
 
 .idea
 .vscode
-dev.py
-docs/module/*
-!docs/module/.gitkeep
+config_dev*.py
+config_prod*.py
+prod
