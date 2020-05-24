@@ -1,3 +1,4 @@
 quart
 httpx
-ujson
+# ujson
+jieba_fast
