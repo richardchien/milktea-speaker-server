@@ -398,7 +398,8 @@ class CommandSession(BaseSession):
     def pause(self, message: Optional[Message_T] = None, **kwargs) -> None:
         """Pause the session for further interaction."""
         if message:
-            self._run_future(self.send(message, **kwargs))
+            self._run_future(self.send(message, should_continue=True,
+                                       **kwargs))
         raise _PauseException
 
     def finish(self, message: Optional[Message_T] = None, **kwargs) -> None:
