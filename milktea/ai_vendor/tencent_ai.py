@@ -11,6 +11,7 @@ import nonebot
 
 STT_API_URL = 'https://api.ai.qq.com/fcgi-bin/aai/aai_asr'
 TTS_API_URL = 'https://api.ai.qq.com/fcgi-bin/aai/aai_tts'
+CHAT_API_URL = 'https://api.ai.qq.com/fcgi-bin/nlp/nlp_textchat'
 
 
 def get_app_id() -> str:
@@ -91,3 +92,22 @@ async def tts(text: str) -> Optional[str]:
     params['text'] = text
     data = await do_post_request(TTS_API_URL, params)
     return data['speech'] if data else None
+
+
+async def chat(question: str, session: str) -> Optional[str]:
+    """
+    智能闲聊.
+
+    Args:
+        question: 用户输入
+        session: 会话标识（应用内唯一）
+
+    Returns:
+        str: 回复内容
+        None: 获取回复失败
+    """
+    params = gen_base_params()
+    params['question'] = question
+    params['session'] = session
+    data = await do_post_request(CHAT_API_URL, params)
+    return data['answer'] if data else None
