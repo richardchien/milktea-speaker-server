@@ -1,3 +1,5 @@
+from os import path
+
 from nonebot import *
 
 from .ai_vendor import tencent_ai
@@ -34,16 +36,6 @@ async def tts(bot: NoneBot, event: Event, message: Message):
     message.reduce()
 
 
-@on_command('test')
-async def test(session: CommandSession):
-    await session.send('wow')
-
-
-@on_natural_language(keywords={'你好'})
-async def hello(session: NLPSession):
-    return IntentCommand(100.0, 'echo', current_arg='你也好')
-
-
 @on_natural_language(keywords={'你是谁'})
 async def who(session: NLPSession):
     return IntentCommand(100.0, 'echo', current_arg='我是奶茶！')
@@ -52,4 +44,6 @@ async def who(session: NLPSession):
 def main(config):
     init(config)
     load_builtin_plugins()
+    load_plugins(path.join(path.dirname(__file__), 'plugins'),
+                 'milktea.plugins')
     run()
