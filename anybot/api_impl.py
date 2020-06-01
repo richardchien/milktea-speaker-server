@@ -88,7 +88,7 @@ class WebSocketReverseApi(AsyncApi):
                 'echo': {
                     'seq': seq
                 }
-            }))
+            }, ensure_ascii=False))
 
         result = await ResultStore.fetch(seq, self._timeout_sec)
         if isinstance(result, dict):
