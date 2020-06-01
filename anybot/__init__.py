@@ -189,13 +189,17 @@ class AnyBot(AsyncApi):
         finally:
             self._remove_wsr_api_client()
 
+    def _current_self_id(self) -> str:
+        return websocket.headers.get('X-Self-ID',
+                                     websocket.args.get('self_id', '*'))
+
     def _add_wsr_api_client(self) -> None:
         ws = websocket._get_current_object()
-        self_id = websocket.headers['X-Self-ID']
+        self_id = self._current_self_id()
         self._wsr_api_clients[self_id] = ws
 
     def _remove_wsr_api_client(self) -> None:
-        self_id = websocket.headers['X-Self-ID']
+        self_id = self._current_self_id()
         if self_id in self._wsr_api_clients:
             # we must check the existence here,
             # because we allow wildcard ws connections,
